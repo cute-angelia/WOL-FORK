@@ -36,6 +36,9 @@ func main() {
 	router.HandleFunc("/api/wakeup/computer/{computerName}", restWakeUpWithComputerName).Methods("GET")
 	router.HandleFunc("/api/wakeup/computer/{computerName}/", restWakeUpWithComputerName).Methods("GET")
 
+	// Define route for adding a new computer
+	router.HandleFunc("/api/add/computer", restAddComputer).Methods("POST")
+
 	// Setup Webserver
 	httpListen := fmt.Sprint(":", httpPort)
 	log.Printf("Startup Webserver on \"%s\"", httpListen)

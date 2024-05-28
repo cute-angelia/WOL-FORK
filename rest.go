@@ -6,11 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-
 	"github.com/gorilla/mux"
 )
 
-//restWakeUpWithComputerName - REST Handler for Processing URLS /api/computer/<computerName>
+// restWakeUpWithComputerName - REST Handler for Processing URLS /api/computer/<computerName>
 func restWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
@@ -56,4 +55,32 @@ func restWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	json.NewEncoder(w).Encode(result)
+}
+
+// restAddComputer - REST Handler for adding a new computer
+func restAddComputer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	var newComputer Computer
+	if err := json.NewDecoder(r.Body).Decode(&newComputer); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Append the new computer to the list
+	ComputerList = append(ComputerList, newComputer)
+
+	// Save the updated list to the CSV file
+	if err := saveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return success message
+	response := WakeUpResponseObject{
+		Success: true,
+		Message: "Computer added successfully",
+		ErrorObject: nil,
+	}
+	json.NewEncoder(w).Encode(response)
 }
