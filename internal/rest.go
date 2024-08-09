@@ -1,6 +1,6 @@
 // Rest API Implementations
 
-package main
+package internal
 
 import (
 	"encoding/json"
@@ -13,7 +13,7 @@ import (
 )
 
 // restWakeUpWithComputerName - REST Handler for Processing URLS /api/computer/<computerName>
-func restWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
+func RestWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	vars := mux.Vars(r)
@@ -57,7 +57,7 @@ func restWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 }
 
 // restAddComputer - REST Handler for adding a new computer
-func restAddComputer(w http.ResponseWriter, r *http.Request) {
+func RestAddComputer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	var newComputer Computer
@@ -98,7 +98,7 @@ func restAddComputer(w http.ResponseWriter, r *http.Request) {
 	ComputerList = append(ComputerList, newComputer)
 
 	// Save the updated list to the CSV file
-	if err := saveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
+	if err := SaveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -108,15 +108,15 @@ func restAddComputer(w http.ResponseWriter, r *http.Request) {
 
 	// Return success message
 	response := WakeUpResponseObject{
-		Success: true,
-		Message: "Computer added successfully",
+		Success:     true,
+		Message:     "Computer added successfully",
 		ErrorObject: nil,
 	}
 	json.NewEncoder(w).Encode(response)
 }
 
 // restDeleteComputer - REST Handler for deleting a computer
-func restDeleteComputer(w http.ResponseWriter, r *http.Request) {
+func RestDeleteComputer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	vars := mux.Vars(r)
@@ -133,8 +133,8 @@ func restDeleteComputer(w http.ResponseWriter, r *http.Request) {
 	if index == -1 {
 		w.WriteHeader(http.StatusNotFound)
 		json.NewEncoder(w).Encode(WakeUpResponseObject{
-			Success: false,
-			Message: fmt.Sprintf("Computername %s could not be found", computerName),
+			Success:     false,
+			Message:     fmt.Sprintf("Computername %s could not be found", computerName),
 			ErrorObject: nil,
 		})
 		return
@@ -142,7 +142,7 @@ func restDeleteComputer(w http.ResponseWriter, r *http.Request) {
 
 	// Delete computer
 	ComputerList = append(ComputerList[:index], ComputerList[index+1:]...)
-	if err := saveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
+	if err := SaveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -152,8 +152,8 @@ func restDeleteComputer(w http.ResponseWriter, r *http.Request) {
 
 	// Return success message
 	json.NewEncoder(w).Encode(WakeUpResponseObject{
-		Success: true,
-		Message: fmt.Sprintf("Successfully deleted computer %s", computerName),
+		Success:     true,
+		Message:     fmt.Sprintf("Successfully deleted computer %s", computerName),
 		ErrorObject: nil,
 	})
 }

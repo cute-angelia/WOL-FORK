@@ -1,0 +1,44 @@
+name: Build and publish a Docker image to ghcr.io
+
+on:
+  # publish on releases, e.g. v2.1.13 (image tagged as "2.1.13" - "v" prefix is removed)
+  release:
+    types: [published]
+
+  # publish tags
+  push:
+    tags:
+      - 'v*' # matches v1.0, v20.15.10
+
+  # publish on pushes to the main branch (image tagged as "latest")
+  #push:
+  #  branches:
+  #    - master
+
+env:
+  REPOSITORY: "${{ github.repository }}"
+  MM_NOTIFY_URL: "${{ secrets.MM_NOTIFY_URL }}"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build and publish a Docker image for ${{ github.repository }}
+        uses: macbre/push-to-ghcr@master
+        with:
+          image_name: ${{ github.repository }} # it will be lowercased internally
+          github_token: ${{ secrets.RELEASE_TOKEN }}
+
+      - name: notify
+        run: |
+          if [ $MM_NOTIFY_URL ];then
+            curl  -H 'Content-Type: application/json' \
+              -d "{\"msgtype\": \"text\",\"text\": {\"content\":\"镜像发布成功 $REPOSITORY \"}}" \
+              $MM_NOTIFY_URL
+          else
+            echo 'MM_NOTIFY_URL not set'
+          fi
+    #- name: Build the Docker image
+    #  run: docker build . --file Dockerfile --tag screenshot:$(date +%s)
