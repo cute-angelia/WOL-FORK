@@ -5,19 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b478ae0a-b0a5-4683-8ad2-5897984ef236" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/.github/workflows/docker-image.yml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Dockerfile" beforeDir="false" afterPath="$PROJECT_DIR$/Dockerfile" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/computer.csv" beforeDir="false" afterPath="$PROJECT_DIR$/computer.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/const.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/const.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/data.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/data.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/envVars.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/envVars.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/go.mod" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/main.go" beforeDir="false" afterPath="$PROJECT_DIR$/main.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pages.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/pages.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/rest.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/rest.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/shellArgs.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/shellArgs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/types.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/types.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/wol.go" beforeDir="false" afterPath="$PROJECT_DIR$/internal/wol.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.github/workflows/docker-image.yml" beforeDir="false" afterPath="$PROJECT_DIR$/.github/workflows/docker-image.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,9 +27,9 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2kPYLbYGW2iWZgS85J7A8xX2EIc" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -55,7 +44,7 @@
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "add-computer-functionality",
+    "git-widget-placeholder": "master",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
     "last_opened_file_path": "/Users/vanilla/git/github/cute-angelia/WOL-FORK",
