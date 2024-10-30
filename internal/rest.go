@@ -78,6 +78,9 @@ func RestAddComputer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// 加 ip
+	newComputer.BroadcastIPAddress = fmt.Sprintf("%s:9", newComputer.BroadcastIPAddress)
+
 	// Check for duplicate name, MAC, or IP address
 	for _, c := range ComputerList {
 		if c.Name == newComputer.Name {
