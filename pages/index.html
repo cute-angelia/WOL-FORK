@@ -188,6 +188,25 @@
       font-size: .82rem;
     }
 
+    /* ── Status dot ── */
+    .status-dot {
+      display: inline-block;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: box-shadow .2s;
+      vertical-align: middle;
+    }
+    .status-dot:hover { box-shadow: 0 0 0 3px rgba(0,0,0,.1); }
+    .status-unknown  { background: #cbd5e1; }
+    .status-online   { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,.5); }
+    .status-offline  { background: #ef4444; }
+    .status-checking { background: #f59e0b; animation: pulse .8s infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .4; }
+    }
+
     /* ── Footer ── */
     footer {
       color: var(--text-muted);
@@ -276,6 +295,7 @@
         <thead>
           <tr>
             <th>操作</th>
+            <th>状态</th>
             <th>设备名称</th>
             <th>MAC 地址</th>
             <th>广播 IP</th>
@@ -298,6 +318,9 @@
                 </button>
               </div>
             </td>
+            <td>
+              <span id="status-{{.Name}}" class="status-dot status-unknown" title="点击检测" onclick="WOL.checkStatus('{{.Name}}', true)"></span>
+            </td>
             <td><span class="computer-name">{{.Name}}</span></td>
             <td><span class="mac-badge">{{.Mac}}</span></td>
             <td><span class="ip-badge">{{.BroadcastIPAddress}}</span></td>
@@ -305,7 +328,7 @@
           </tr>
           {{else}}
           <tr id="empty-row">
-            <td colspan="5">
+            <td colspan="6">
               <div class="empty-state">
                 <i class="bi bi-inbox"></i>
                 <div>暂无设备，请添加第一台设备</div>
@@ -415,6 +438,9 @@
             </button>
           </div>
         </td>
+        <td>
+          <span id="status-${name}" class="status-dot status-unknown" title="点击检测" onclick="WOL.checkStatus('${name}', true)"></span>
+        </td>
         <td><span class="computer-name">${name}</span></td>
         <td><span class="mac-badge">${mac}</span></td>
         <td><span class="ip-badge">${ip}</span></td>
@@ -422,12 +448,54 @@
       return tr;
     }
 
-    // ── Wake Up ───────────────────────────────────────────────────────────
+    // ── Check Status ──────────────────────────────────────────────────────
+    async function checkStatus(name, showResult = false) {
+      const dot = document.getElementById(`status-${name}`);
+      if (!dot) return false;
+      dot.className = 'status-dot status-checking';
+      dot.title = '检测中…';
+      try {
+        const res = await fetch(`/api/status/computer/${encodeURIComponent(name)}`);
+        const data = await res.json();
+        if (data.online) {
+          dot.className = 'status-dot status-online';
+          dot.title = '在线';
+          if (showResult) showToast(`${name} 在线 ✓`, 'success');
+        } else {
+          dot.className = 'status-dot status-offline';
+          dot.title = '离线';
+          if (showResult) showToast(`${name} 离线`, 'danger');
+        }
+        return data.online;
+      } catch {
+        dot.className = 'status-dot status-unknown';
+        dot.title = '检测失败';
+        return false;
+      }
+    }
+
+    // ── Wake Up（唤醒后自动轮询，最多 60 秒）────────────────────────────────
     async function wakeUp(name) {
       try {
         const res = await fetch(`/api/wakeup/computer/${encodeURIComponent(name)}`);
         const data = await res.json();
         showToast(data.message, data.success ? 'success' : 'danger');
+        if (data.success) {
+          // 3 秒后开始轮询，每 5 秒一次，最多尝试 12 次（60 秒）
+          let tries = 0;
+          const timer = setInterval(async () => {
+            tries++;
+            const online = await checkStatus(name, false);
+            if (online) {
+              clearInterval(timer);
+              showToast(`${name} 已唤醒上线 🎉`, 'success');
+            } else if (tries >= 12) {
+              clearInterval(timer);
+              showToast(`${name} 未在 60 秒内上线`, 'danger');
+            }
+          }, 5000);
+          setTimeout(() => checkStatus(name, false), 3000); // 先检测一次
+        }
       } catch (e) {
         showToast('请求失败：' + e, 'danger');
       }
@@ -532,8 +600,13 @@
 
     // init
     updateCount();
+    // 页面加载后自动检测所有设备状态
+    document.querySelectorAll('#computerList tr[id^="row-"]').forEach(tr => {
+      const name = tr.id.replace('row-', '');
+      if (name) checkStatus(name, false);
+    });
 
-    return { wakeUp, openEdit, submitEdit, deleteComputer };
+    return { wakeUp, openEdit, submitEdit, deleteComputer, checkStatus };
   })();
 </script>
 </body>

@@ -240,3 +240,29 @@ func RestDeleteComputer(w http.ResponseWriter, r *http.Request) {
 		ErrorObject: nil,
 	})
 }
+
+// RestCheckStatus - REST Handler for checking if a computer is online
+func RestCheckStatus(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	computerName := vars["computerName"]
+
+	for _, c := range ComputerList {
+		if c.Name == computerName {
+			online := CheckOnline(c.BroadcastIPAddress)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"online": online,
+				"name":   c.Name,
+			})
+			return
+		}
+	}
+
+	w.WriteHeader(http.StatusNotFound)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"online": false,
+		"name":   computerName,
+		"error":  "computer not found",
+	})
+}

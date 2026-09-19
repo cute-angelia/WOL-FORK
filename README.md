@@ -75,6 +75,21 @@ Content-Type: application/json
 DELETE /api/delete/computer/<ComputerName>
 ```
 
+### 检测设备在线状态
+
+```
+GET /api/status/computer/<ComputerName>
+```
+
+**返回示例：**
+
+```json
+{
+  "name": "MyPC",
+  "online": true
+}
+```
+
 ---
 
 ## 配置

@@ -47,6 +47,9 @@ func main() {
 	// Delete computer
 	router.HandleFunc("/api/delete/computer/{computerName}", internal.RestDeleteComputer).Methods("DELETE")
 
+	// Check online status
+	router.HandleFunc("/api/status/computer/{computerName}", internal.RestCheckStatus).Methods("GET")
+
 	// Setup Webserver
 	httpListen := fmt.Sprint(":", httpPort)
 	log.Printf("Startup Webserver on \"%s\"", httpListen)
