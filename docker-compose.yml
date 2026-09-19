@@ -3,7 +3,7 @@ services:
   wol:
     image: ghcr.io/cute-angelia/wol-fork:latest
     ports:
-      - "8080:8080"
+      - "38127:8080"
     volumes:
       - ./data:/data       # SQLite 数据持久化
     environment:
