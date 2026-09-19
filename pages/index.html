@@ -453,8 +453,7 @@
           return;
         }
         removeEmptyRow();
-        const displayIp = `${payload.broadcastIp}:9`;
-        document.getElementById('computerList').appendChild(buildRow(payload.name, payload.mac, displayIp));
+        document.getElementById('computerList').appendChild(buildRow(payload.name, payload.mac, payload.broadcastIp));
         updateCount();
         showToast(`设备 "${payload.name}" 已添加`, 'success');
         document.getElementById('addForm').reset();
@@ -465,12 +464,10 @@
 
     // ── Open Edit Modal ───────────────────────────────────────────────────
     function openEdit(name, mac, ip) {
-      // Strip ":9" port if present for the input field
-      const ipClean = ip.replace(/:9$/, '');
       document.getElementById('editOldName').value = name;
       document.getElementById('editName').value   = name;
       document.getElementById('editMac').value    = mac;
-      document.getElementById('editIp').value     = ipClean;
+      document.getElementById('editIp').value     = ip;
       bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
     }
 
@@ -494,9 +491,8 @@
           return;
         }
         // Replace old row with new row
-        const displayIp = `${payload.broadcastIp}:9`;
         const oldRow = document.getElementById(`row-${oldName}`);
-        const newRow = buildRow(payload.name, payload.mac, displayIp);
+        const newRow = buildRow(payload.name, payload.mac, payload.broadcastIp);
         oldRow.replaceWith(newRow);
         showToast(`设备 "${oldName}" 已更新`, 'success');
         bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
