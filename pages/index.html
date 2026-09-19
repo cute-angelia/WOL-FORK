@@ -474,27 +474,39 @@
       }
     }
 
-    // ── Wake Up（唤醒后自动轮询，最多 60 秒）────────────────────────────────
+    const pollTimers = {};
+
+    // ── Wake Up（唤醒后触发轮询，最多 60 秒）────────────────────────────────
     async function wakeUp(name) {
       try {
         const res = await fetch(`/api/wakeup/computer/${encodeURIComponent(name)}`);
         const data = await res.json();
         showToast(data.message, data.success ? 'success' : 'danger');
         if (data.success) {
-          // 3 秒后开始轮询，每 5 秒一次，最多尝试 12 次（60 秒）
+          if (pollTimers[name]) {
+            clearInterval(pollTimers[name]);
+            delete pollTimers[name];
+          }
+
           let tries = 0;
-          const timer = setInterval(async () => {
+          pollTimers[name] = setInterval(async () => {
             tries++;
             const online = await checkStatus(name, false);
             if (online) {
-              clearInterval(timer);
+              clearInterval(pollTimers[name]);
+              delete pollTimers[name];
               showToast(`${name} 已唤醒上线 🎉`, 'success');
             } else if (tries >= 12) {
-              clearInterval(timer);
+              clearInterval(pollTimers[name]);
+              delete pollTimers[name];
               showToast(`${name} 未在 60 秒内上线`, 'danger');
             }
           }, 5000);
-          setTimeout(() => checkStatus(name, false), 3000); // 先检测一次
+
+          // 3 秒后执行首次探测
+          setTimeout(() => {
+            if (pollTimers[name]) checkStatus(name, false);
+          }, 3000);
         }
       } catch (e) {
         showToast('请求失败：' + e, 'danger');
@@ -600,11 +612,6 @@
 
     // init
     updateCount();
-    // 页面加载后自动检测所有设备状态
-    document.querySelectorAll('#computerList tr[id^="row-"]').forEach(tr => {
-      const name = tr.id.replace('row-', '');
-      if (name) checkStatus(name, false);
-    });
 
     return { wakeUp, openEdit, submitEdit, deleteComputer, checkStatus };
   })();
