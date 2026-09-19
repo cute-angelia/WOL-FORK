@@ -1,199 +1,544 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-  <title>GO-REST-WOL</title>
-  <!-- Required meta tags -->
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta/css/bootstrap.min.css" integrity="sha384-/Y6pD6FV/Vv2HJnA6t+vslU6fwYXjCFtcEpHbNJ0lyAFsXTsjBbfaDjzALeQsN6M" crossorigin="anonymous">
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WOL — Wake on LAN</title>
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
   <style>
-    .hideMe {
-      display: none;
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --badge-bg: #ede9fe;
+      --badge-text: #5b21b6;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    .app-header {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      padding: 1.5rem 0;
+      box-shadow: 0 4px 20px rgba(79,70,229,.3);
+    }
+    .app-header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -.5px;
+      margin: 0;
+    }
+    .app-header .subtitle {
+      font-size: .85rem;
+      opacity: .8;
+      margin-top: .2rem;
+    }
+    .header-icon {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,.2);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+    }
+
+    /* ── Toast ── */
+    .toast-container { z-index: 9999; }
+
+    /* ── Card ── */
+    .card {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.04);
+    }
+    .card-header {
+      background: transparent;
+      border-bottom: 1px solid var(--border);
+      padding: 1.1rem 1.5rem;
+      font-weight: 600;
+      font-size: .95rem;
+      border-radius: 16px 16px 0 0 !important;
+    }
+
+    /* ── Form ── */
+    .form-label { font-weight: 500; font-size: .85rem; color: var(--text-muted); }
+    .form-control, .form-select {
+      border-radius: 10px;
+      border: 1.5px solid var(--border);
+      font-size: .9rem;
+      transition: border .2s, box-shadow .2s;
+    }
+    .form-control:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+    }
+
+    /* ── Buttons ── */
+    .btn { border-radius: 8px; font-size: .85rem; font-weight: 500; }
+    .btn-primary { background: var(--primary); border-color: var(--primary); }
+    .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+    .btn-wake {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border: none; color: #fff;
+      padding: .3rem .75rem;
+      font-size: .8rem;
+    }
+    .btn-wake:hover { background: linear-gradient(135deg, #16a34a, #15803d); color: #fff; }
+    .btn-edit {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border: none; color: #fff;
+      padding: .3rem .75rem;
+      font-size: .8rem;
+    }
+    .btn-edit:hover { background: linear-gradient(135deg, #d97706, #b45309); color: #fff; }
+    .btn-del {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border: none; color: #fff;
+      padding: .3rem .75rem;
+      font-size: .8rem;
+    }
+    .btn-del:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; }
+
+    /* ── Table ── */
+    .table-wrapper { border-radius: 0 0 16px 16px; overflow: hidden; }
+    .table { margin: 0; }
+    .table thead th {
+      background: #f1f5f9;
+      font-size: .78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      padding: .85rem 1rem;
+    }
+    .table tbody tr { transition: background .15s; }
+    .table tbody tr:hover { background: #f8fafc; }
+    .table tbody td {
+      padding: .9rem 1rem;
+      vertical-align: middle;
+      border-bottom: 1px solid #f1f5f9;
+      font-size: .88rem;
+    }
+    .table tbody tr:last-child td { border-bottom: none; }
+
+    .computer-name { font-weight: 600; color: var(--text); }
+    .mac-badge {
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: .78rem;
+      padding: .25rem .6rem;
+      border-radius: 6px;
+    }
+    .ip-badge {
+      background: #ecfdf5;
+      color: #065f46;
+      font-family: monospace;
+      font-size: .78rem;
+      padding: .25rem .6rem;
+      border-radius: 6px;
+    }
+    .api-url {
+      color: var(--text-muted);
+      font-family: monospace;
+      font-size: .78rem;
+      background: #f1f5f9;
+      padding: .2rem .5rem;
+      border-radius: 5px;
+    }
+
+    /* ── Action group ── */
+    .action-group { display: flex; gap: .4rem; flex-wrap: nowrap; }
+
+    /* ── Empty state ── */
+    .empty-state {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    .empty-state i { font-size: 2.5rem; opacity: .3; margin-bottom: .75rem; display: block; }
+
+    /* ── Modal ── */
+    .modal-content { border-radius: 16px; border: none; }
+    .modal-header { border-bottom: 1px solid var(--border); padding: 1.25rem 1.5rem; }
+    .modal-footer { border-top: 1px solid var(--border); padding: 1rem 1.5rem; }
+    .modal-title { font-weight: 700; }
+
+    /* ── API docs ── */
+    .api-section pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      font-size: .82rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      color: var(--text-muted);
+      font-size: .8rem;
+      padding: 1.5rem 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      margin-top: 2rem;
     }
   </style>
 </head>
 <body>
-  <div class="container-fluid">
-    <div class="row">
-      <div class="col-12" role="main">
-        <h1><span class="fa fa-qq"></span> GO-REST-WOL <small>Your little Monster to Wakeup the lazy one</small></h1>
-          <div id="snackbar" class="alert hideMe">
-            Message comes here
-          </div>
-          <!-- New Computer Form -->
-          <form id="newComputerForm">
-            <div class="form-group">
-              <label for="computerName">Computer Name</label>
-              <input type="text" class="form-control" id="computerName" placeholder="Enter computer name" required>
-            </div>
-            <div class="form-group">
-              <label for="macAddress">MAC Address</label>
-              <input type="text" class="form-control" id="macAddress" placeholder="Enter MAC address" required>
-            </div>
-            <div class="form-group">
-              <label for="broadcastIp">Broadcast IP Address</label>
-              <input type="text" class="form-control" id="broadcastIp" placeholder="Enter broadcast IP address" required>
-            </div>
-            <button type="submit" class="btn btn-primary">Add Computer</button>
-          </form>
-          <hr>
-          <table class="table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Computer</th>
-                  <th>MAC Address</th>
-                  <th>Broadcast IP Address</th>
-                  <th>API URL</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody id="computerList">
-                {{range .}}
-                <tr>
-                  <td class="align-middle"><b><button id="bn_{{.Name}}" name="wolbutton" value="{{.Name}}" class="btn btn-success btn-sm" onclick="$.wakeUpComputerByName('{{.Name}}')">WakeUp</button></b></td>
-                  <td class="align-middle">{{.Name}}</td>
-                  <td class="align-middle">{{.Mac}}</td>
-                  <td class="align-middle">{{.BroadcastIPAddress}}</td>
-                  <td class="align-middle">/api/wakeup/computer/{{.Name}}</td>
-                  <td class="align-middle"><b><button id="del_{{.Name}}" name="delbutton" value="{{.Name}}" class="btn btn-danger btn-sm" onclick="$.deleteComputer('{{.Name}}')">Delete</button></b></td>
-                </tr>
-                {{end}}
-              </tbody>
-            </table>
-            <hr>
-            <p>
-              <h3>REST API Usage</h3>
-              <b>/api/wakeup/computer/<span class="text-info">&lt;ComputerName&gt;</span></b>
 
-              <b>Returns a JSON Object</b>
-              <p>
-              <pre>
-                {
-                  "success":true,
-                  "message":"Succesfully Wakeup Computer Computer1 with Mac 64-07-2D-BB-BB-BF on Broadcast IP 192.168.10.254:9",
-                  "error":null
-                }
-              </pre>
-              </p>
-              <dl class="dl-horizontal">
-                <dt>success</dt>
-                <dd>True or False if the WakeOnLan Paket was send</dd>
-                <dt>message</dt>
-                <dd>Message as string what happen</dd>
-                <dt>error</dt>
-                <dd>Encoded Jsonobject from GOLANG Error Object</dd>
-              </dl>
-
-            </p>
-            <hr>
-            <p>
-              <span class="fa fa-github"></span> Project Page: <a href="https://github.com/dabondi/go-rest-wol">https://github.com/dabondi/go-rest-wol</a>
-            </p>
-            <p>
-                <small>Build with <span class="fa fa-heart text-danger" aria-hidden="true"></span> by David Baumann, <span class="fa fa-github"></span> <a href="https://github.com/dabondi">https://github.com/dabondi</a></small>
-            </p>
+<!-- Header -->
+<header class="app-header text-white">
+  <div class="container-xl">
+    <div class="d-flex align-items-center gap-3">
+      <div class="header-icon"><i class="bi bi-lightning-charge-fill"></i></div>
+      <div>
+        <h1><i class="bi bi-broadcast"></i> Wake on LAN</h1>
+        <div class="subtitle">远程唤醒局域网设备的控制台</div>
       </div>
     </div>
   </div>
+</header>
 
-  <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tether/1.4.0/js/tether.min.js" integrity="sha384-DztdAPBWPRXSA/3eYEEUWrWCy7G5KFbe8fFjk5JAIxUYHKkDx6Qin1DkWx51bBrb" crossorigin="anonymous"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-alpha.6/js/bootstrap.min.js" integrity="sha384-vBWWzlZJ8ea9aCX4pEW3rVHjgjt7zpkNpZk+02D9phzyeVkE+jo0ieGizqPLForn" crossorigin="anonymous"></script>
+<!-- Toast 通知 -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+  <div id="toast" class="toast align-items-center border-0" role="alert">
+    <div class="d-flex">
+      <div class="toast-body fw-semibold" id="toastMsg"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+    </div>
+  </div>
+</div>
 
-  <script>
-    $(document).ready(function() {
+<div class="container-xl py-4">
 
-      jQuery.showSnackBar = function(data){
-        $('#snackbar').text(data.message);
-        if( data.error != null) {
-          $('#snackbar').addClass('alert-danger');
-          $('#snackbar').removeClass('alert-success')
-        }else{
-          $('#snackbar').removeClass('alert-danger')
-          $('#snackbar').addClass('alert-success')
-        }
-        $('#snackbar').show();
+  <!-- Add Computer Card -->
+  <div class="card mb-4">
+    <div class="card-header d-flex align-items-center gap-2">
+      <i class="bi bi-plus-circle-fill text-primary"></i> 添加新设备
+    </div>
+    <div class="card-body p-4">
+      <form id="addForm">
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">设备名称</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-pc-display"></i></span>
+              <input type="text" class="form-control" id="computerName" placeholder="例：MyPC" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">MAC 地址</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-ethernet"></i></span>
+              <input type="text" class="form-control" id="macAddress" placeholder="AA:BB:CC:DD:EE:FF" required>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">广播 IP（含端口，如 192.168.1.255:9）</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-wifi"></i></span>
+              <input type="text" class="form-control" id="broadcastIp" placeholder="192.168.1.255:9" required>
+            </div>
+          </div>
+        </div>
+        <div class="mt-3">
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-plus-lg me-1"></i> 添加设备
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        // After 2 seconds, hide the Div Again
-        setTimeout(function(){
-          $('#snackbar').hide();
-        }, 2000);
+  <!-- Device List Card -->
+  <div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+      <span><i class="bi bi-hdd-network-fill text-primary me-1"></i> 设备列表</span>
+      <span class="badge bg-primary rounded-pill" id="deviceCount">0</span>
+    </div>
+    <div class="table-wrapper">
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>操作</th>
+            <th>设备名称</th>
+            <th>MAC 地址</th>
+            <th>广播 IP</th>
+            <th>API 路径</th>
+          </tr>
+        </thead>
+        <tbody id="computerList">
+          {{range .}}
+          <tr id="row-{{.Name}}">
+            <td>
+              <div class="action-group">
+                <button class="btn btn-wake btn-sm" onclick="WOL.wakeUp('{{.Name}}')">
+                  <i class="bi bi-lightning-fill me-1"></i>唤醒
+                </button>
+                <button class="btn btn-edit btn-sm" onclick="WOL.openEdit('{{.Name}}','{{.Mac}}','{{.BroadcastIPAddress}}')">
+                  <i class="bi bi-pencil-fill me-1"></i>编辑
+                </button>
+                <button class="btn btn-del btn-sm" onclick="WOL.deleteComputer('{{.Name}}')">
+                  <i class="bi bi-trash3-fill me-1"></i>删除
+                </button>
+              </div>
+            </td>
+            <td><span class="computer-name">{{.Name}}</span></td>
+            <td><span class="mac-badge">{{.Mac}}</span></td>
+            <td><span class="ip-badge">{{.BroadcastIPAddress}}</span></td>
+            <td><span class="api-url">/api/wakeup/computer/{{.Name}}</span></td>
+          </tr>
+          {{else}}
+          <tr id="empty-row">
+            <td colspan="5">
+              <div class="empty-state">
+                <i class="bi bi-inbox"></i>
+                <div>暂无设备，请添加第一台设备</div>
+              </div>
+            </td>
+          </tr>
+          {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- API Docs -->
+  <div class="card mt-4 api-section">
+    <div class="card-header"><i class="bi bi-code-slash me-1"></i> REST API 文档</div>
+    <div class="card-body p-4">
+      <p class="text-muted small">GET <code>/api/wakeup/computer/<span class="text-primary">&lt;ComputerName&gt;</span></code></p>
+      <pre>{
+  "success": true,
+  "message": "Succesfully Wakeup Computer MyPC with Mac AA:BB:CC:DD:EE:FF on Broadcast IP 192.168.1.255:9",
+  "error": null
+}</pre>
+    </div>
+  </div>
+
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editModalLabel"><i class="bi bi-pencil-fill text-warning me-2"></i>编辑设备</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <input type="hidden" id="editOldName">
+        <div class="mb-3">
+          <label class="form-label">设备名称</label>
+          <input type="text" class="form-control" id="editName" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">MAC 地址</label>
+          <input type="text" class="form-control" id="editMac" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">广播 IP（含端口，如 192.168.1.255:9）</label>
+          <input type="text" class="form-control" id="editIp" placeholder="192.168.1.255:9" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+        <button type="button" class="btn btn-primary px-4" onclick="WOL.submitEdit()">
+          <i class="bi bi-check-lg me-1"></i>保存
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <i class="bi bi-github me-1"></i>
+  <a href="https://github.com/dabondi/go-rest-wol" class="text-muted">go-rest-wol</a>
+  &nbsp;·&nbsp; Powered by Go + SQLite
+</footer>
+
+<!-- Bootstrap 5 JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const WOL = (() => {
+    // ── Toast ────────────────────────────────────────────────────────────
+    function showToast(message, type = 'success') {
+      const el = document.getElementById('toast');
+      const msg = document.getElementById('toastMsg');
+      el.className = `toast align-items-center border-0 text-white bg-${type === 'success' ? 'success' : 'danger'}`;
+      msg.textContent = message;
+      bootstrap.Toast.getOrCreateInstance(el, { delay: 3000 }).show();
+    }
+
+    // ── Update badge count ────────────────────────────────────────────────
+    function updateCount() {
+      const rows = document.querySelectorAll('#computerList tr[id^="row-"]');
+      document.getElementById('deviceCount').textContent = rows.length;
+    }
+
+    // ── Remove empty state row ────────────────────────────────────────────
+    function removeEmptyRow() {
+      const e = document.getElementById('empty-row');
+      if (e) e.remove();
+    }
+
+    // ── Build a table row ─────────────────────────────────────────────────
+    function buildRow(name, mac, ip) {
+      const tr = document.createElement('tr');
+      tr.id = `row-${name}`;
+      tr.innerHTML = `
+        <td>
+          <div class="action-group">
+            <button class="btn btn-wake btn-sm" onclick="WOL.wakeUp('${name}')">
+              <i class="bi bi-lightning-fill me-1"></i>唤醒
+            </button>
+            <button class="btn btn-edit btn-sm" onclick="WOL.openEdit('${name}','${mac}','${ip}')">
+              <i class="bi bi-pencil-fill me-1"></i>编辑
+            </button>
+            <button class="btn btn-del btn-sm" onclick="WOL.deleteComputer('${name}')">
+              <i class="bi bi-trash3-fill me-1"></i>删除
+            </button>
+          </div>
+        </td>
+        <td><span class="computer-name">${name}</span></td>
+        <td><span class="mac-badge">${mac}</span></td>
+        <td><span class="ip-badge">${ip}</span></td>
+        <td><span class="api-url">/api/wakeup/computer/${name}</span></td>`;
+      return tr;
+    }
+
+    // ── Wake Up ───────────────────────────────────────────────────────────
+    async function wakeUp(name) {
+      try {
+        const res = await fetch(`/api/wakeup/computer/${encodeURIComponent(name)}`);
+        const data = await res.json();
+        showToast(data.message, data.success ? 'success' : 'danger');
+      } catch (e) {
+        showToast('请求失败：' + e, 'danger');
+      }
+    }
+
+    // ── Add Computer ──────────────────────────────────────────────────────
+    document.getElementById('addForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('computerName').value.trim(),
+        mac:  document.getElementById('macAddress').value.trim(),
+        broadcastIp: document.getElementById('broadcastIp').value.trim()
       };
-
-      jQuery.wakeUpComputerByName = function(computerName) {
-        $.ajax({
-          type: "GET",
-          url: "/api/wakeup/computer/" + computerName,
-          contentType: "application/json; charset=utf-8",
-          dataType: "json",
-          success: function(data) {
-            $.showSnackBar(data);
-          },
-          error: function(data,err)
-          {
-            $.showSnackBar(data);
-            console.error(data);
-          }
-        })
-      };
-
-      // Function to handle the form submission
-      $('#newComputerForm').on('submit', function(event) {
-        event.preventDefault();
-        var newComputer = {
-          name: $('#computerName').val(),
-          mac: $('#macAddress').val(),
-          broadcastIp: $('#broadcastIp').val()
-        };
-
-        $.ajax({
-          type: "POST",
-          url: "/api/add/computer",
-          contentType: "application/json; charset=utf-8",
-          data: JSON.stringify(newComputer),
-          success: function(data) {
-            $.showSnackBar({ message: "Computer added successfully", error: null });
-            if (data.success) {
-              // Add new computer to the table
-              $('#computerList').append('<tr>' +
-                '<td class="align-middle"><b><button id="bn_' + newComputer.name + '" name="wolbutton" value="' + newComputer.name + '" class="btn btn-success btn-sm" onclick="$.wakeUpComputerByName(\'' + newComputer.name + '\')">WakeUp</button></b></td>' +
-                '<td class="align-middle">' + newComputer.name + '</td>' +
-                '<td class="align-middle">' + newComputer.mac + '</td>' +
-                '<td class="align-middle">' + newComputer.broadcastIp + '</td>' +
-                '<td class="align-middle">/api/wakeup/computer/' + newComputer.name + '</td>' +
-                '<td class="align-middle"><b><button id="del_' + newComputer.name + '" name="delbutton" value="' + newComputer.name + '" class="btn btn-danger btn-sm" onclick="$.deleteComputer(\'' + newComputer.name + '\')">Delete</button></b></td>' +
-              '</tr>');
-            }
-          },
-          error: function(data, err) {
-            $.showSnackBar(data);
-            console.error(data);
-          }
+      try {
+        const res = await fetch('/api/add/computer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-      });
-
-      // Function to handle the delete button
-      jQuery.deleteComputer = function(computerName) {
-        $.ajax({
-          type: "DELETE",
-          url: "/api/delete/computer/" + computerName,
-          contentType: "application/json; charset=utf-8",
-          dataType: "json",
-          success: function(data) {
-            $.showSnackBar(data);
-            if (data.success) {
-              $('#bn_' + computerName).closest('tr').remove();
-            }
-          },
-          error: function(data, err) {
-            $.showSnackBar(data);
-            console.error(data);
-          }
-        })
-      };
+        if (!res.ok) {
+          const text = await res.text();
+          showToast(text || '添加失败', 'danger');
+          return;
+        }
+        removeEmptyRow();
+        const displayIp = `${payload.broadcastIp}:9`;
+        document.getElementById('computerList').appendChild(buildRow(payload.name, payload.mac, displayIp));
+        updateCount();
+        showToast(`设备 "${payload.name}" 已添加`, 'success');
+        document.getElementById('addForm').reset();
+      } catch (err) {
+        showToast('请求失败：' + err, 'danger');
+      }
     });
-  </script>
+
+    // ── Open Edit Modal ───────────────────────────────────────────────────
+    function openEdit(name, mac, ip) {
+      // Strip ":9" port if present for the input field
+      const ipClean = ip.replace(/:9$/, '');
+      document.getElementById('editOldName').value = name;
+      document.getElementById('editName').value   = name;
+      document.getElementById('editMac').value    = mac;
+      document.getElementById('editIp').value     = ipClean;
+      bootstrap.Modal.getOrCreateInstance(document.getElementById('editModal')).show();
+    }
+
+    // ── Submit Edit ───────────────────────────────────────────────────────
+    async function submitEdit() {
+      const oldName = document.getElementById('editOldName').value;
+      const payload = {
+        name: document.getElementById('editName').value.trim(),
+        mac:  document.getElementById('editMac').value.trim(),
+        broadcastIp: document.getElementById('editIp').value.trim()
+      };
+      try {
+        const res = await fetch(`/api/update/computer/${encodeURIComponent(oldName)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          showToast(text || '更新失败', 'danger');
+          return;
+        }
+        // Replace old row with new row
+        const displayIp = `${payload.broadcastIp}:9`;
+        const oldRow = document.getElementById(`row-${oldName}`);
+        const newRow = buildRow(payload.name, payload.mac, displayIp);
+        oldRow.replaceWith(newRow);
+        showToast(`设备 "${oldName}" 已更新`, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+      } catch (err) {
+        showToast('请求失败：' + err, 'danger');
+      }
+    }
+
+    // ── Delete ────────────────────────────────────────────────────────────
+    async function deleteComputer(name) {
+      if (!confirm(`确定要删除设备 "${name}" 吗？`)) return;
+      try {
+        const res = await fetch(`/api/delete/computer/${encodeURIComponent(name)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+          document.getElementById(`row-${name}`)?.remove();
+          updateCount();
+          showToast(`设备 "${name}" 已删除`, 'success');
+          if (document.querySelectorAll('#computerList tr[id^="row-"]').length === 0) {
+            document.getElementById('computerList').innerHTML = `
+              <tr id="empty-row">
+                <td colspan="5">
+                  <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <div>暂无设备，请添加第一台设备</div>
+                  </div>
+                </td>
+              </tr>`;
+          }
+        } else {
+          showToast(data.message || '删除失败', 'danger');
+        }
+      } catch (err) {
+        showToast('请求失败：' + err, 'danger');
+      }
+    }
+
+    // init
+    updateCount();
+
+    return { wakeUp, openEdit, submitEdit, deleteComputer };
+  })();
+</script>
 </body>
 </html>

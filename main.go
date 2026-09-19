@@ -12,15 +12,20 @@ import (
 
 func main() {
 	// Start Processing Shell Arguments or use Default Values defined in const.go
-	httpPort, computerFilePath := internal.ProcessShellArgs()
+	httpPort, dbPath := internal.ProcessShellArgs()
 
 	// Process Environment Variables
-	httpPort, computerFilePath = internal.ProcessEnvVars(httpPort, computerFilePath)
+	httpPort, dbPath = internal.ProcessEnvVars(httpPort, dbPath)
 
-	// Loading Computer CSV File to Memory File in Memory
-	var loadComputerCSVFileError error
-	if internal.ComputerList, loadComputerCSVFileError = internal.LoadComputerList(computerFilePath); loadComputerCSVFileError != nil {
-		log.Fatalf("Error on loading Computerlist File \"%s\" check File access and formating", computerFilePath)
+	// Initialize SQLite database
+	if err := internal.InitDB(dbPath); err != nil {
+		log.Fatalf("Error initializing SQLite database \"%s\": %v", dbPath, err)
+	}
+
+	// Load Computer List from DB into memory
+	var loadErr error
+	if internal.ComputerList, loadErr = internal.LoadComputerList(); loadErr != nil {
+		log.Fatalf("Error loading computer list from database: %v", loadErr)
 	}
 
 	// Init HTTP Router - mux
@@ -29,14 +34,17 @@ func main() {
 	// Define Home Route
 	router.HandleFunc("/", internal.RenderHomePage).Methods("GET")
 
-	// Define Wakeup Api functions with a Computer Name
+	// Wakeup API
 	router.HandleFunc("/api/wakeup/computer/{computerName}", internal.RestWakeUpWithComputerName).Methods("GET")
 	router.HandleFunc("/api/wakeup/computer/{computerName}/", internal.RestWakeUpWithComputerName).Methods("GET")
 
-	// Define route for adding a new computer
+	// Add computer
 	router.HandleFunc("/api/add/computer", internal.RestAddComputer).Methods("POST")
 
-	// Define route for deleting a computer
+	// Update computer
+	router.HandleFunc("/api/update/computer/{computerName}", internal.RestUpdateComputer).Methods("PUT")
+
+	// Delete computer
 	router.HandleFunc("/api/delete/computer/{computerName}", internal.RestDeleteComputer).Methods("DELETE")
 
 	// Setup Webserver

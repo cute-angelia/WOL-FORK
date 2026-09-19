@@ -2,4 +2,4 @@
 .vscode
 build.bat
 install.bat
-debug
+debugcomputer.db

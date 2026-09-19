@@ -6,21 +6,17 @@ import (
 	"strconv"
 )
 
-// Processing Shell Arguments
-func ProcessEnvVars(port int, computerFile string) (int, string) {
-
+// ProcessEnvVars processes environment variables for port and DB path
+func ProcessEnvVars(port int, dbFile string) (int, string) {
 	if os.Getenv(DefaultComputerFilePathEnvironmentName) != "" {
-		computerFile = os.Getenv(DefaultComputerFilePathEnvironmentName)
-		if !FileExists(computerFile) {
-			log.Fatalf("Environmentvariable \"%s\" is set but Value is not a Path to an existing File: %s", DefaultComputerFilePathEnvironmentName, computerFile)
-		}
+		dbFile = os.Getenv(DefaultComputerFilePathEnvironmentName)
 	}
 
 	if os.Getenv(DefaultHTTPPortEnvironmentVariableName) != "" {
 		var err error
 		if port, err = strconv.Atoi(os.Getenv(DefaultHTTPPortEnvironmentVariableName)); err != nil {
-			log.Fatalf("Environmentvariable \"%s\" should be a integer", DefaultHTTPPortEnvironmentVariableName)
+			log.Fatalf("Environment variable \"%s\" should be an integer", DefaultHTTPPortEnvironmentVariableName)
 		}
 	}
-	return port, computerFile
+	return port, dbFile
 }

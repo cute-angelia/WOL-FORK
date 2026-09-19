@@ -8,11 +8,30 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
 
-// restWakeUpWithComputerName - REST Handler for Processing URLS /api/computer/<computerName>
+var (
+	macRegex = regexp.MustCompile(`^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$`)
+	ipRegex  = regexp.MustCompile(`^([0-9]{1,3}\.){3}[0-9]{1,3}$`)
+)
+
+// normalizeIP accepts "192.168.1.x" or "192.168.1.x:9" (any port),
+// validates the IP part, and always returns "192.168.1.x:9".
+func normalizeIP(raw string) (string, bool) {
+	host := raw
+	if idx := strings.LastIndex(raw, ":"); idx != -1 {
+		host = raw[:idx] // strip existing port
+	}
+	if !ipRegex.MatchString(host) {
+		return "", false
+	}
+	return host + ":9", true
+}
+
+// RestWakeUpWithComputerName - REST Handler for Processing URLS /api/wakeup/computer/<computerName>
 func RestWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -22,24 +41,19 @@ func RestWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 	var result WakeUpResponseObject
 	result.Success = false
 
-	// Ensure computerName is not empty
 	if computerName == "" {
 		result.Message = "Empty Computername is not allowed"
 		result.ErrorObject = nil
 		w.WriteHeader(http.StatusBadRequest)
 	} else {
-		// Get Computer from List
 		for _, c := range ComputerList {
 			if c.Name == computerName {
-				// We found the Computername
 				if err := SendMagicPacket(c.Mac, c.BroadcastIPAddress, ""); err != nil {
-					// We got an internal Error on SendMagicPacket
 					w.WriteHeader(http.StatusInternalServerError)
 					result.Success = false
 					result.Message = "Internal error on Sending the Magic Packet"
 					result.ErrorObject = err
 				} else {
-					// Horray we send the WOL Packet succesfully
 					result.Success = true
 					result.Message = fmt.Sprintf("Succesfully Wakeup Computer %s with Mac %s on Broadcast IP %s", c.Name, c.Mac, c.BroadcastIPAddress)
 					result.ErrorObject = nil
@@ -47,8 +61,7 @@ func RestWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		if result.Success == false && result.ErrorObject == nil {
-			// We could not find the Computername
+		if !result.Success && result.ErrorObject == nil {
 			w.WriteHeader(http.StatusNotFound)
 			result.Message = fmt.Sprintf("Computername %s could not be found", computerName)
 		}
@@ -56,7 +69,7 @@ func RestWakeUpWithComputerName(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
-// restAddComputer - REST Handler for adding a new computer
+// RestAddComputer - REST Handler for adding a new computer
 func RestAddComputer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -66,22 +79,19 @@ func RestAddComputer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Validate MAC and IP address formats
 	macRegex := regexp.MustCompile(`^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$`)
-	ipRegex := regexp.MustCompile(`^([0-9]{1,3}\.){3}[0-9]{1,3}$`)
 	if !macRegex.MatchString(newComputer.Mac) {
 		http.Error(w, "Invalid MAC address format", http.StatusBadRequest)
 		return
 	}
-	if !ipRegex.MatchString(newComputer.BroadcastIPAddress) {
+	normalizedIP, ok := normalizeIP(newComputer.BroadcastIPAddress)
+	if !ok {
 		http.Error(w, "Invalid IP address format", http.StatusBadRequest)
 		return
 	}
+	newComputer.BroadcastIPAddress = normalizedIP
 
-	// 加 ip
-	newComputer.BroadcastIPAddress = fmt.Sprintf("%s:9", newComputer.BroadcastIPAddress)
 
-	// Check for duplicate name, MAC, or IP address
 	for _, c := range ComputerList {
 		if c.Name == newComputer.Name {
 			http.Error(w, "Computer with this name already exists", http.StatusBadRequest)
@@ -97,28 +107,101 @@ func RestAddComputer(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Append the new computer to the list
-	ComputerList = append(ComputerList, newComputer)
-
-	// Save the updated list to the CSV file
-	if err := SaveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
+	saved, err := AddComputer(newComputer)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Log the creation of a new computer
-	log.Printf("Added new computer: %+v\n", newComputer)
+	ComputerList = append(ComputerList, saved)
+	log.Printf("Added new computer: %+v\n", saved)
 
-	// Return success message
-	response := WakeUpResponseObject{
+	json.NewEncoder(w).Encode(WakeUpResponseObject{
 		Success:     true,
 		Message:     "Computer added successfully",
 		ErrorObject: nil,
-	}
-	json.NewEncoder(w).Encode(response)
+	})
 }
 
-// restDeleteComputer - REST Handler for deleting a computer
+// RestUpdateComputer - REST Handler for updating an existing computer
+func RestUpdateComputer(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	vars := mux.Vars(r)
+	oldName := vars["computerName"]
+
+	var updated Computer
+	if err := json.NewDecoder(r.Body).Decode(&updated); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if !macRegex.MatchString(updated.Mac) {
+		http.Error(w, "Invalid MAC address format", http.StatusBadRequest)
+		return
+	}
+	normalizedIP, ok := normalizeIP(updated.BroadcastIPAddress)
+	if !ok {
+		http.Error(w, "Invalid IP address format", http.StatusBadRequest)
+		return
+	}
+	updated.BroadcastIPAddress = normalizedIP
+
+	found := false
+	for _, c := range ComputerList {
+		if c.Name == oldName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(WakeUpResponseObject{
+			Success: false,
+			Message: fmt.Sprintf("Computername %s could not be found", oldName),
+		})
+		return
+	}
+
+	for _, c := range ComputerList {
+		if c.Name == oldName {
+			continue
+		}
+		if c.Name == updated.Name {
+			http.Error(w, "Computer with this name already exists", http.StatusBadRequest)
+			return
+		}
+		if c.Mac == updated.Mac {
+			http.Error(w, "Computer with this MAC address already exists", http.StatusBadRequest)
+			return
+		}
+		if c.BroadcastIPAddress == updated.BroadcastIPAddress {
+			http.Error(w, "Computer with this IP address already exists", http.StatusBadRequest)
+			return
+		}
+	}
+
+	if err := UpdateComputer(oldName, updated); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var err error
+	ComputerList, err = LoadComputerList()
+	if err != nil {
+		log.Printf("Warning: failed to reload computer list after update: %v", err)
+	}
+
+	log.Printf("Updated computer: %s -> %+v\n", oldName, updated)
+
+	json.NewEncoder(w).Encode(WakeUpResponseObject{
+		Success:     true,
+		Message:     fmt.Sprintf("Computer %s updated successfully", oldName),
+		ErrorObject: nil,
+	})
+}
+
+// RestDeleteComputer - REST Handler for deleting a computer
 func RestDeleteComputer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -143,17 +226,14 @@ func RestDeleteComputer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Delete computer
-	ComputerList = append(ComputerList[:index], ComputerList[index+1:]...)
-	if err := SaveComputerList(DefaultComputerFilePath, ComputerList); err != nil {
+	if err := DeleteComputer(computerName); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Log the deletion of a computer
+	ComputerList = append(ComputerList[:index], ComputerList[index+1:]...)
 	log.Printf("Deleted computer: %s\n", computerName)
 
-	// Return success message
 	json.NewEncoder(w).Encode(WakeUpResponseObject{
 		Success:     true,
 		Message:     fmt.Sprintf("Successfully deleted computer %s", computerName),

@@ -5,15 +5,10 @@ on:
   release:
     types: [published]
 
-  # publish tags
+  # publish on version tags
   push:
     tags:
       - 'v*' # matches v1.0, v20.15.10
-
-  # publish on pushes to the main branch (image tagged as "latest")
-  #push:
-  #  branches:
-  #    - master
 
 env:
   REPOSITORY: "${{ github.repository }}"
@@ -24,21 +19,31 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
-      - name: Build and publish a Docker image for ${{ github.repository }}
-        uses: macbre/push-to-ghcr@master
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build and publish Docker image for ${{ github.repository }}
+        uses: macbre/push-to-ghcr@v14
         with:
           image_name: ${{ github.repository }} # it will be lowercased internally
           github_token: ${{ secrets.RELEASE_TOKEN }}
 
-      - name: notify
+      - name: Notify
+        if: always()
         run: |
-          if [ $MM_NOTIFY_URL ];then
-            curl  -H 'Content-Type: application/json' \
-              -d "{\"msgtype\": \"text\",\"text\": {\"content\":\"镜像发布成功 $REPOSITORY \"}}" \
-              $MM_NOTIFY_URL
+          if [ -n "$MM_NOTIFY_URL" ]; then
+            STATUS="${{ job.status }}"
+            curl -s -H 'Content-Type: application/json' \
+              -d "{\"msgtype\": \"text\", \"text\": {\"content\": \"镜像发布${STATUS} $REPOSITORY\"}}" \
+              "$MM_NOTIFY_URL"
           else
-            echo 'MM_NOTIFY_URL not set'
+            echo 'MM_NOTIFY_URL not set, skipping notification'
           fi
-    #- name: Build the Docker image
-    #  run: docker build . --file Dockerfile --tag screenshot:$(date +%s)

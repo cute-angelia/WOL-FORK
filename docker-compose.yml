@@ -1,14 +1,12 @@
-version: '3'
+version: '3.8'
 services:
   wol:
-    image: "dabondi/go-rest-wol"
+    build: .
     ports:
       - "8080:8080"
-
-    # Warten auf die neue Version 
-    #volumes:
-    #  - c:\temp:temp
-networks:
-  default:
-    external:
-      name: nat
+    volumes:
+      - ./data:/data       # SQLite 数据持久化
+    environment:
+      - WOLHTTPPORT=8080
+      - WOLDB=/data/computer.db
+    restart: unless-stopped

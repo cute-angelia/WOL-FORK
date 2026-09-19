@@ -9,6 +9,7 @@ type WakeUpResponseObject struct {
 
 // Computer represents a Computer Object
 type Computer struct {
+	ID                 int64  `json:"id"`
 	Name               string `csv:"name" json:"name"`
 	Mac                string `csv:"mac" json:"mac"`
 	BroadcastIPAddress string `csv:"ip" json:"broadcastIp"`

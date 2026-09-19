@@ -1,29 +1,27 @@
-FROM golang:alpine3.16 AS builder
+# ── Stage 1: Build ──────────────────────────────────────────────────────────
+FROM golang:1.23-alpine AS builder
 
-RUN mkdir /app
-ADD . /app/
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN go build -o go-rest-wol .
+
+# ── Stage 2: Runtime ─────────────────────────────────────────────────────────
+FROM alpine:3.19
 WORKDIR /app
 
-# Install Dependencies
-RUN apk update && apk upgrade && \
-    apk add --no-cache git && \
-    go get -d github.com/gorilla/handlers@v1.5.1 && \
-    go get -d github.com/gorilla/mux@v1.8.0 && \
-    go get -d github.com/gocarina/gocsv@v0.0.0-20220727205534-7fbf8e1b37fb
-
-# Build Source Files
-RUN go build 
-
-# Create 2nd Stage final image
-FROM alpine:3.16
-WORKDIR /app
-COPY --from=builder /app/pages/index.html ./pages/index.html
-COPY --from=builder /app/computer.csv .
+# 拷贝二进制和前端页面
 COPY --from=builder /app/go-rest-wol .
+COPY --from=builder /app/pages/index.html ./pages/index.html
+
+# 数据目录（挂载持久化 SQLite 用）
+RUN mkdir -p /data
 
 ENV WOLHTTPPORT=8080
-ENV WOLFILE=computer.csv
+ENV WOLDB=/data/computer.db
+
+EXPOSE 8080
 
 CMD ["/app/go-rest-wol"]
-
-EXPOSE ${WOLHTTPPORT}
